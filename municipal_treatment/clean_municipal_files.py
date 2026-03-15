@@ -25,7 +25,8 @@ import os
 from candidates_map import candidates_map
 from utils.export import export_dataset_to_csv
 from utils.debug import debug_print
-from db.fill_db import export_dataset_to_db, clear_database
+from db.fill_db import export_dataset_to_db
+from db.clear_db import clear_database
 from db.db_cnx import connect_to_database
 
 # ---------------------------------------------------------------------------

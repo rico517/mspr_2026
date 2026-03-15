@@ -15,20 +15,22 @@ Insertion order (respects FK dependencies):
 """
 
 from utils.debug import debug_print
+from db.db_cnx import connect_to_database
 
 SCRUTIN_TYPE = "Municipales"
 
 # ---------------------------------------------------------------------------
 
-def export_dataset_to_db(df, cnx):
+def export_dataset_to_db(df, cnx = None):
     """
     Insert the full long-form DataFrame into the database.
     All six tables are populated in dependency order.
     Build caches to minimize redundant SELECT queries.
     """
+    should_close_cnx_at_end = False
     if cnx is None:
-        debug_print("No database connection - skipping DB insertion.", level=1)
-        return
+        cnx = connect_to_database()
+        should_close_cnx_at_end = True
 
     debug_print("\nInserting data into the database...", level=1)
     cursor = cnx.cursor()
@@ -160,25 +162,8 @@ def export_dataset_to_db(df, cnx):
         )
     cnx.commit()
 
-    debug_print("All data inserted successfully.", level=1)
     # endregion
+    if should_close_cnx_at_end:
+        cnx.close()
 
-# ---------------------------------------------------------------------------
-
-def clear_database(cnx):
-    """
-    Truncate all tables in reverse FK order.
-    """
-    if cnx is None:
-        debug_print("No database connection - skipping clear.", level=1)
-        return
-
-    debug_print("Clearing database tables...", level=1)
-    cursor = cnx.cursor()
-
-    for table in ["votes", "scrutins_circonscriptions", "candidats",
-                  "scrutins", "circonscriptions", "bords_politiques"]:
-        cursor.execute(f"DELETE FROM {table}")
-
-    cnx.commit()
-    debug_print("Database tables cleared.", level=1)
+    debug_print("All data inserted successfully.", level=1)
