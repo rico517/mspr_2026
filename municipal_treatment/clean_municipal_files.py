@@ -221,7 +221,7 @@ if __name__ == "__main__":
 
     cnx = connect_to_database()
 
-    clear_database(cnx)
+    # clear_database(cnx)
 
     debug_print("\nProcessing election files...", level=1)
     cleaned_df = process_all_data()
