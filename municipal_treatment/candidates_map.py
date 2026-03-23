@@ -19,7 +19,6 @@ candidates_map = {
     "ARNOULD Alexandre": "SOU",
     "PIAZZINI Natasha": "EXG",
     "PENINOU Mao": "C",
-    "TIBERI Dominique": "D",
     "GHOSN Georges": "D",
     "LE GAL Eric": "EXD",
     "LEMARDELEY Marie-Christine": "G",
@@ -279,7 +278,6 @@ candidates_map = {
     "BERTRAND Geneviève": "CD",
     "BOUTAULT Jacques": "G",
     "BULTE Michel": "D",
-    "BURKLI Delphine": "D",
     "DIAWARA Soulé": "G",
     "DUCHAUSSOY Xavier": "RG",
     "DUGGAN Peneloppe": "EXG",
@@ -322,5 +320,4 @@ candidates_map = {
     "SALA Emmanuel": "C",
     "SOREL Jonathan": "G",
     "STAMBOULI Line": "C",
-    "BUZIN Agnès": "C",
 }

@@ -53,7 +53,7 @@ echo "National data cleaning process done"
 cd ..
 echo
 echo =================================================================
-exit
+
 # region municipal data treatment
 echo
 echo "Cleaning municipal data..."

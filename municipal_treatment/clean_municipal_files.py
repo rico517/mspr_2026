@@ -134,6 +134,8 @@ def reshape_file(df):
     long_df['BORD_POL'] = long_df['CANDIDAT'].map(candidates_map)
     long_df.drop(columns=['CANDIDAT'], inplace=True)
 
+    long_df = harmonize_duplicate_candidates(long_df)
+
     return long_df
 
 # ---------------------------------------------------------------------------
@@ -174,6 +176,21 @@ def clean_candidate_columns(df):
     df = df.rename(columns=rename_map)
     return df, candidate_cols
 
+def harmonize_duplicate_candidates(df):
+    """
+    Some candidates appear under slightly different names across files.
+    This function applies manual rules to harmonize them
+    """
+    df = df.copy()
+
+    df["NOM"] = df["NOM"].replace({
+        "BÜRKLI": "BURKLI",
+        "BUZIN": "BUZYN",
+        "TIBERI": "TIBÉRI",
+    })
+
+    return df
+
 
 def split_candidate_name(full_name):
     """
@@ -204,7 +221,7 @@ if __name__ == "__main__":
 
     cnx = connect_to_database()
 
-    # clear_database(cnx)
+    clear_database(cnx)
 
     debug_print("\nProcessing election files...", level=1)
     cleaned_df = process_all_data()
