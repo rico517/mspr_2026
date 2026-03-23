@@ -65,7 +65,7 @@ def export_dataset_to_db(df, cnx = None):
         )
         if not cursor.fetchone():
             cursor.execute(
-                "INSERT INTO candidats (nom, prenom, id_bord_politique) VALUES (%s, %s, %s)",
+                "INSERT IGNORE INTO candidats (nom, prenom, id_bord_politique) VALUES (%s, %s, %s)",
                 (row["NOM"], row["PRENOM"], id_bord),
             )
     cnx.commit()

@@ -9,10 +9,10 @@ test1 = pd.read_csv("./resultats-par-niveau-burvot-t2-france-entiere.csv",sep=";
 test2 = pd.read_csv("./PR17_BVot_T1_FE.csv",sep=";",low_memory=False, decimal=',')
 test3 = pd.read_csv("./PR17_BVot_T2_FE.csv",sep=";",low_memory=False, decimal=',')
 
-df_filtre = test[test['Libelle du departement'].str.contains('Paris',case=False)]
-df_filtre1 = test1[test1['Libelle du departement'].str.contains('Paris',case=False)]
-df_filtre2 = test2[test2['Libelle du departement'].str.contains('Paris',case=False)]
-df_filtre3 = test3[test3['Libelle du departement'].str.contains('Paris',case=False)]
+df_filtre = test[test['Libelle du departement'].str.contains('Paris',case=False)].copy()
+df_filtre1 = test1[test1['Libelle du departement'].str.contains('Paris',case=False)].copy()
+df_filtre2 = test2[test2['Libelle du departement'].str.contains('Paris',case=False)].copy()
+df_filtre3 = test3[test3['Libelle du departement'].str.contains('Paris',case=False)].copy()
 
 # Nombre maximum de tentatives de connexion à la base de données
 MAX_RETRIES = 5
@@ -70,7 +70,6 @@ a_sommer1=['Inscrits','Abstentions','Votants','Blancs','Nuls','Exprimes','Voix1'
 a_sommer2=['Inscrits','Abstentions','Votants','Blancs','Nuls','Exprimes','Voix1','Voix2','Voix3','Voix4','Voix5','Voix6','Voix7','Voix8','Voix9','Voix10','Voix11']
 a_sommer3=['Inscrits','Abstentions','Votants','Blancs','Nuls','Exprimes','Voix1','Voix2']
 
-df_filtre_copie = df_filtre
 df_filtre['Nom1']= df_filtre['Nom']
 df_filtre['Prenom1']=df_filtre['Prenom']
 df_filtre['Voix1']=df_filtre['Voix']
@@ -118,14 +117,14 @@ df_resultat['Bord10']=df_resultat['Nom10'].replace('PECRESSE','D')
 df_resultat['Bord11']=df_resultat['Nom11'].replace('POUTOU','EXG')
 df_resultat['Bord12']=df_resultat['Nom12'].replace('DUPONT-AIGNAN','SOU')
 
-df_resultat['Annee']=df_resultat['Nom12'].replace('DUPONT-AIGNAN',2022)
-df_resultat['Tour']=df_resultat['Nom12'].replace('DUPONT-AIGNAN',1)
+df_resultat['Annee']=2022
+df_resultat['Tour']=1
 
 df_resultat1['Bord1']=df_resultat1['Nom1'].replace('MACRON','C')
 df_resultat1['Bord2']=df_resultat1['Nom2'].replace('LE PEN','EXD')
 
-df_resultat1['Annee']=df_resultat1['Nom2'].replace('LE PEN',2022)
-df_resultat1['Tour']=df_resultat1['Nom2'].replace('LE PEN',2)
+df_resultat1['Annee']=2022
+df_resultat1['Tour']=2
 
 df_resultat2['Bord5']=df_resultat2['Nom5'].replace('ARTHAUD','EXG')
 df_resultat2['Bord10']=df_resultat2['Nom10'].replace('ASSELINEAU','SOU')
@@ -140,14 +139,14 @@ df_resultat2['Bord11']=df_resultat2['Nom11'].replace('FILLON','D')
 df_resultat2['Bord6']=df_resultat2['Nom6'].replace('POUTOU','EXG')
 df_resultat2['Bord1']=df_resultat2['Nom1'].replace('DUPONT-AIGNAN','SOU')
 
-df_resultat2['Annee']=df_resultat2['Nom1'].replace('DUPONT-AIGNAN',2017)
-df_resultat2['Tour']=df_resultat2['Nom1'].replace('DUPONT-AIGNAN',1)
+df_resultat2['Annee']=2017
+df_resultat2['Tour']=1
 
 df_resultat3['Bord1']=df_resultat3['Nom1'].replace('MACRON','C')
 df_resultat3['Bord2']=df_resultat3['Nom2'].replace('LE PEN','EXD')
 
-df_resultat3['Annee']=df_resultat3['Nom2'].replace('LE PEN',2017)
-df_resultat3['Tour']=df_resultat3['Nom2'].replace('LE PEN',2)
+df_resultat3['Annee']=2017
+df_resultat3['Tour']=2
 
 cursor = mspr_conn.cursor()
 list_df=[df_resultat,df_resultat1,df_resultat2,df_resultat3]
