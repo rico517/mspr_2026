@@ -1,0 +1,25 @@
+version : "3.4"
+services:
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root  # Mot de passe pour l'utilisateur root
+    ports:
+      - "3306:3306"  # Port exposé
+    volumes:
+      - mysql_data:/var/lib/mysql  # Stockage persistant des données
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin
+    environment:
+      PMA_HOST: mysql  # Nom de l'hôte MySQL (lié au service MySQL)
+      MYSQL_ROOT_PASSWORD: root
+      UPLOAD_LIMIT: 100M  # Limite de taille de téléchargement
+    ports:
+      - "8080:80"  # phpMyAdmin disponible sur localhost:8080
+    depends_on:
+      - mysql
+volumes:
+  mysql_data:

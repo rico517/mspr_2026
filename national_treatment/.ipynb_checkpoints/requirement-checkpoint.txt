@@ -1,3 +1,0 @@
-pandas
-seaborn
-mysql-connector-python
