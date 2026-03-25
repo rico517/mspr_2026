@@ -54,8 +54,16 @@ mspr_conn = connect_to_database(
         )
 
 cursor = mspr_conn.cursor()
-cursor.execute("SELECT nom, prenom, label, tour, annee, type, code as code_circo, voix, abstentions,votants,exprimes,blancs_nuls,inscrits FROM votes JOIN scrutins_circonscriptions on scrutins_circonscriptions.id = votes.id_scrutin_circonscription join candidats on candidats.id = votes.id_candidat join bords_politiques on bords_politiques.id = candidats.id_bord_politique join scrutins on scrutins.id = scrutins_circonscriptions.id_scrutin join circonscriptions on circonscriptions.id = scrutins_circonscriptions.id_circonscription;")
+cursor.execute("SELECT label as bord_politique, tour, annee, type, code as code_circo, voix, abstentions,votants,exprimes,blancs_nuls,inscrits FROM votes JOIN scrutins_circonscriptions on scrutins_circonscriptions.id = votes.id_scrutin_circonscription join candidats on candidats.id = votes.id_candidat join bords_politiques on bords_politiques.id = candidats.id_bord_politique join scrutins on scrutins.id = scrutins_circonscriptions.id_scrutin join circonscriptions on circonscriptions.id = scrutins_circonscriptions.id_circonscription;")
 df = pd.DataFrame(cursor.fetchall() , columns=[i[0] for i in cursor.description])
 
 print(df.info())
 print(df.head())
+
+dft1 = df[df['tour'] == 1]
+dft2 = df[df['tour'] == 2]
+
+dft1=dft1.drop(columns=['tour'])
+dft2=dft2.drop(columns=['tour'])
+print(dft1.head())
+print(dft2.head())
