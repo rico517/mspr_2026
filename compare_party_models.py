@@ -48,6 +48,7 @@ def load_raw_data_from_database() -> pd.DataFrame:
     cnx = connect_to_database()
     try:
         cursor = cnx.cursor()
+        # Read all election rows; filtering is handled during feature/target assembly.
         cursor.execute(RAW_SQL_QUERY)
         records = cursor.fetchall()
         columns = [col[0] for col in cursor.description]
@@ -68,6 +69,7 @@ def _get_last_two_years(df: pd.DataFrame, election_type: str) -> Tuple[int, int]
 
 
 def _aggregate_all_rounds(raw_df: pd.DataFrame) -> pd.DataFrame:
+    # Keep each election round as a separate signal to preserve full electoral dynamics.
     grouped = (
         raw_df.groupby(
             [
@@ -103,38 +105,43 @@ def _aggregate_all_rounds(raw_df: pd.DataFrame) -> pd.DataFrame:
 
 def prepare_dataset_from_database(
     raw_df: pd.DataFrame,
-    national_type: str,
-    municipal_type: str,
+    target_election_type: str,
+    secondary_election_type: str,
 ) -> pd.DataFrame:
     aggregated = _aggregate_all_rounds(raw_df)
 
-    nat_year_1, nat_year_2 = _get_last_two_years(aggregated, national_type)
-    mun_year_1, mun_year_2 = _get_last_two_years(aggregated, municipal_type)
+    target_year_1, target_year_2 = _get_last_two_years(aggregated, target_election_type)
+    secondary_year_1, secondary_year_2 = _get_last_two_years(
+        aggregated, secondary_election_type
+    )
 
     print(
         "Selected elections for features (all rounds): "
-        f"{national_type} {nat_year_1}, {national_type} {nat_year_2}, "
-        f"{municipal_type} {mun_year_1}"
+        f"{target_election_type} {target_year_1}, "
+        f"{secondary_election_type} {secondary_year_1}, "
+        f"{secondary_election_type} {secondary_year_2}"
     )
-    print(f"Target election: {municipal_type} {mun_year_2}")
+    print(f"Target election: {target_election_type} {target_year_2}")
 
     events_for_features: Dict[str, Tuple[str, int]] = {
-        "nat_share_year_1": (national_type, nat_year_1),
-        "nat_share_year_2": (national_type, nat_year_2),
-        "mun_share_year_1": (municipal_type, mun_year_1),
+        # Use only past information relative to the target year to avoid leakage.
+        "target_share_year_1": (target_election_type, target_year_1),
+        "secondary_share_year_1": (secondary_election_type, secondary_year_1),
+        "secondary_share_year_2": (secondary_election_type, secondary_year_2),
     }
 
     target_event = aggregated[
-        (aggregated["election_type"] == municipal_type)
-        & (aggregated["election_year"] == mun_year_2)
+        (aggregated["election_type"] == target_election_type)
+        & (aggregated["election_year"] == target_year_2)
     ].copy()
 
     if target_event.empty:
-        raise ValueError("No target rows found for the latest municipal election year.")
+        raise ValueError("No target rows found for the latest target election year.")
 
     target_final_round = target_event.groupby("district_code", as_index=False)[
         "election_round"
     ].max()
+    # Winners are determined on the final round of the target election.
     target_for_winner = target_event.merge(
         target_final_round,
         on=["district_code", "election_round"],
@@ -166,12 +173,14 @@ def prepare_dataset_from_database(
         for election_round in rounds:
             round_subset = subset[subset["election_round"] == election_round]
 
+            # Party-level vote-share features.
             vote_col = f"{feature_name}_tour_{int(election_round)}"
             vote_subset = round_subset[["district_code", "party_label", "vote_share"]].rename(
                 columns={"vote_share": vote_col}
             )
             base = base.merge(vote_subset, on=["district_code", "party_label"], how="left")
 
+            # District-level turnout context for the same round.
             turnout_col = f"taux_participation_{election_type}_{election_year}_tour_{int(election_round)}"
             turnout_subset = (
                 round_subset[["district_code", "turnout"]]
@@ -252,6 +261,7 @@ def train_and_compare(
     )
 
     if test_size <= 0:
+        # Full-data mode: evaluate with out-of-fold predictions instead of train predictions.
         class_counts = pd.Series(y).value_counts()
         max_valid_folds = int(class_counts.min())
         if max_valid_folds < 2:
@@ -301,6 +311,7 @@ def train_and_compare(
         )
 
         if test_size <= 0:
+            # Out-of-fold predictions provide a realistic estimate while using all rows.
             predictions = cross_val_predict(
                 pipeline,
                 x,
@@ -375,16 +386,16 @@ def parse_args() -> argparse.Namespace:
         help="Number of folds for stratified cross-validation when test_size is 0.",
     )
     parser.add_argument(
-        "--national-type",
+        "--target-election-type",
         type=str,
         default="Presidentielle",
-        help="Election type used as national source.",
+        help="Election type used as prediction target.",
     )
     parser.add_argument(
-        "--municipal-type",
+        "--secondary-election-type",
         type=str,
         default="Municipales",
-        help="Election type used as municipal source.",
+        help="Secondary election type used for additional features.",
     )
     return parser.parse_args()
 
@@ -394,8 +405,8 @@ def main() -> None:
     raw_df = load_raw_data_from_database()
     data = prepare_dataset_from_database(
         raw_df=raw_df,
-        national_type=args.national_type,
-        municipal_type=args.municipal_type,
+        target_election_type=args.target_election_type,
+        secondary_election_type=args.secondary_election_type,
     )
 
     print(f"Modeling dataset shape: {data.shape}")

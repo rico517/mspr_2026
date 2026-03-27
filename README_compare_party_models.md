@@ -69,18 +69,18 @@ Calculs:
 
 Le script prend automatiquement:
 
-- les 2 dernieres annees disponibles pour `national_type` (defaut: `Presidentielle`)
-- les 2 dernieres annees disponibles pour `municipal_type` (defaut: `Municipales`)
+- les 2 dernieres annees disponibles pour le type cible (`target_election_type`, defaut: `Presidentielle`)
+- les 2 dernieres annees disponibles pour le type secondaire (`secondary_election_type`, defaut: `Municipales`)
 
 Features utilisees:
 
-- nationale annee N-1 (tous tours)
-- nationale annee N (tous tours)
-- municipale annee N-1 (tous tours)
+- cible annee N-1 (tous tours)
+- secondaire annee N-1 (tous tours)
+- secondaire annee N (tous tours)
 
 Cible:
 
-- municipale annee N
+- cible annee N
 
 ## 3.4 Construction de la cible
 
@@ -92,6 +92,7 @@ Le gagnant de chaque circonscription est determine sur le dernier tour de l'elec
 Important:
 
 - les features utilisent tous les tours des elections historiques
+- par defaut, la cible est nationale (`Presidentielle`)
 - la definition du vainqueur reste basee sur le tour final de l'election cible
 
 ## 4. Variables/features du modele
@@ -101,9 +102,9 @@ Le DataFrame final contient notamment:
 - `district_code`
 - `party_label`
 - des colonnes de parts de voix par election et par tour, par exemple:
-  - `nat_share_year_1_tour_1`
-  - `nat_share_year_1_tour_2`
-  - `mun_share_year_1_tour_1`
+  - `target_share_year_1_tour_1`
+  - `target_share_year_1_tour_2`
+  - `secondary_share_year_1_tour_1`
 - des colonnes de participation par election et par tour, par exemple:
   - `taux_participation_Presidentielle_2017_tour_1`
   - `taux_participation_Municipales_2014_tour_2`
@@ -152,8 +153,8 @@ Ce preprocessing est integre dans chaque pipeline modele.
 - `--test-size` (defaut: `0.0`)
 - `--random-state` (defaut: `42`)
 - `--cv-folds` (defaut: `5`)
-- `--national-type` (defaut: `Presidentielle`)
-- `--municipal-type` (defaut: `Municipales`)
+- `--target-election-type` (defaut: `Presidentielle`)
+- `--secondary-election-type` (defaut: `Municipales`)
 
 ## 10. Execution
 
@@ -167,6 +168,12 @@ Exemple en split train/test:
 
 ```bash
 c:/Users/julie/Desktop/Projets/mspr_2026/.venv/Scripts/python.exe compare_party_models.py --test-size 0.2
+```
+
+Exemple explicite pour predire les nationales avec les municipales en variables explicatives:
+
+```bash
+c:/Users/julie/Desktop/Projets/mspr_2026/.venv/Scripts/python.exe compare_party_models.py --target-election-type Presidentielle --secondary-election-type Municipales
 ```
 
 ## 11. Interpretation des resultats
