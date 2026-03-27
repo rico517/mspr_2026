@@ -1,0 +1,4 @@
+rank,model,Top1Accuracy_mean,Top1Accuracy_std,Top3Accuracy_mean
+1,logistic_balanced,0.9444444444444444,0.0,1.0
+2,xgboost,0.8888888888888888,0.0,1.0
+3,random_forest_balanced,0.8333333333333334,0.0,1.0
