@@ -1,10 +1,12 @@
 # Compare list_candidates.txt and candidates_map.py
 import sys
-import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE_DIR))
 from candidates_map import candidates_map
 
-list_candidates_path = "list_candidates.txt"
+list_candidates_path = BASE_DIR / "list_candidates.txt"
 
 # Load the list of candidates from the text file
 with open(list_candidates_path, encoding="utf-8") as f:

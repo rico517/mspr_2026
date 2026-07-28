@@ -20,31 +20,29 @@ A single cleaned dataset with the following columns:
 Each row represents one candidate in one year, one turn, and one circonscription.
 """
 
-import pandas as pd
 import os
-from candidates_map import candidates_map
-from utils.export import export_dataset_to_csv
-from utils.debug import debug_print
-from db.fill_db import export_dataset_to_db
-from db.clear_db import clear_database
-from db.db_cnx import connect_to_database
+from pathlib import Path
+
+import pandas as pd
+
+from common.db import connect_to_database, export_dataset_to_db
+from common.export import export_dataset_to_csv
+from common.logging import debug_print
+from common.schema import CONTEXT_COLS, OUTPUT_COLS, STATS_COLS, merge_blank_null
+
+from .candidates_map import candidates_map
 
 # ---------------------------------------------------------------------------
 
-data_path   = "./data"
-output_path = "./output"
+SCRUTIN_TYPE = "Municipales"
 
-# Context columns that are present in the raw files and should be kept in the output
-CONTEXT_COLS = ['ANNEE', 'TOUR', 'NUM_CIRC']
-# Stats columns that are present in the raw files and should be kept in the output
-STATS_COLS   = ['NB_INSCR', 'NB_VOTANT', 'NB_EXPRIM', 'NB_BL_NUL']
+BASE_DIR    = Path(__file__).resolve().parent
+data_path   = BASE_DIR / "data"
+output_path = BASE_DIR / "output"
+
 # Metadata columns that are present in the raw files but not needed in the output
 META_COLS    = ['ID_BVOTE', 'SCRUTIN', 'DATE', 'NUM_QUARTIER',
                 'NUM_ARROND', 'NUM_BUREAU', 'NB_PROCU', 'NB_EMARG']
-# Final output columns, in the desired order
-OUTPUT_COLS  = ['NOM', 'PRENOM', 'BORD_POL', 'ANNEE', 'TOUR',
-                'NUM_CIRC', 'NB_INSCR', 'NB_VOTANT', 'NB_EXPRIM',
-                'NB_BL_NUL', 'NB_VOIX']
 
 # ---------------------------------------------------------------------------
 
@@ -56,8 +54,8 @@ def process_all_data():
     frames = []
     for year in ('2014', '2020'):
         for turn in (1, 2):
-            path = f"{data_path}/{year}/{turn}"
-            if not os.path.isdir(path):
+            path = data_path / year / str(turn)
+            if not path.is_dir():
                 continue
             debug_print(f"\nProcessing {year} – tour {turn} ({path})", level=1)
             df = load_and_reshape_path(path)
@@ -80,7 +78,7 @@ def load_and_reshape_path(path):
     for file in sorted(os.listdir(path)):
         if file.endswith(".xls") or file.endswith(".xlsx"):
             debug_print(f"  Reading {file}", level=2)
-            raw_df = pd.read_excel(f"{path}/{file}")
+            raw_df = pd.read_excel(path / file)
             reshaped = reshape_file(raw_df)
             frames.append(reshaped)
 
@@ -142,11 +140,7 @@ def reshape_file(df):
 
 def merge_nul_blanc(df):
     """Merge NB_NUL + NB_BLANC → NB_BL_NUL when the split form is present."""
-    df = df.copy()
-    if 'NB_NUL' in df.columns and 'NB_BLANC' in df.columns:
-        df['NB_BL_NUL'] = df['NB_NUL'] + df['NB_BLANC']
-        df.drop(columns=['NB_NUL', 'NB_BLANC'], inplace=True)
-    return df
+    return merge_blank_null(df, blanc_col='NB_BLANC', nul_col='NB_NUL')
 
 
 def clean_candidate_columns(df):
@@ -221,7 +215,8 @@ if __name__ == "__main__":
 
     cnx = connect_to_database()
 
-    # clear_database(cnx)
+    # Run `python -m common.reset_db` first to start from an empty database -
+    # clearing here would also wipe out national_treatment's data.
 
     debug_print("\nProcessing election files...", level=1)
     cleaned_df = process_all_data()
@@ -231,7 +226,7 @@ if __name__ == "__main__":
 
     # export_dataset_to_csv(cleaned_df, "cleaned_municipal_data.csv", output_path)
 
-    export_dataset_to_db(cleaned_df, cnx)
+    export_dataset_to_db(cleaned_df, SCRUTIN_TYPE, cnx)
 
     if cnx is not None:
         cnx.close()

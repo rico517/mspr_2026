@@ -21,7 +21,7 @@ except ImportError as exc:
         "xgboost is required to run this script. Install it with: pip install xgboost"
     ) from exc
 
-from municipal_treatment.db.db_cnx import connect_to_database
+from common.db import connect_to_database
 
 RAW_SQL_QUERY = """
 SELECT

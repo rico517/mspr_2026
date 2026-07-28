@@ -21,36 +21,15 @@ This project cleans, restructures, and integrates municipal election results (20
 
 ## Setup
 
-1. **Create a virtual environment**
-	```sh
-	python -m venv venv
-	```
-
-2. **Activate the virtual environment**
-	- On Windows:
-	  ```sh
-	  venv\Scripts\activate
-	  ```
-	- On Mac/Linux:
-	  ```sh
-	  source venv/bin/activate
-	  ```
-
-3. **Install dependencies**
-	```sh
-	pip install -r requirements.txt
-	```
-
-4. **Configure database connection**
-	- Edit the file `db/db_cnx.py` to set your MySQL host, user, password, and database name if needed.
+This module is part of the `mspr_2026` project and shares a single virtual environment and a `common/` package with `national_treatment/`. See the [root README](../README.md) for environment setup and database configuration (`common/db.py`, overridable via `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASSWORD`/`DB_NAME` environment variables).
 
 ## Running the Data Processing
 
-Run the main script to clean the data, generate the CSV, and populate the database:
+Run the main script from the repository root (required so that `common` resolves):
 
 ```sh
-python clean_municipal_files.py
+python -m municipal_treatment.clean_municipal_files
 ```
 
-- The cleaned file will be generated at `output/cleaned_municipal_data.csv`.
-- Data will be inserted into the configured MySQL database.
+- The cleaned CSV export is disabled by default; uncomment the `export_dataset_to_csv(...)` call in `clean_municipal_files.py` to generate `output/cleaned_municipal_data.csv`.
+- Data is inserted into the configured MySQL database via `common.db.export_dataset_to_db`.

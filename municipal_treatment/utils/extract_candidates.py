@@ -1,9 +1,10 @@
 import os
+from pathlib import Path
+
 import pandas as pd
 
-data_path = "./data"
-data_2014_1_path = f"{data_path}/2014/1"
-data_2020_1_path = f"{data_path}/2020/1"
+BASE_DIR = Path(__file__).resolve().parent.parent
+data_path = BASE_DIR / "data"
 
 def get_candidate_columns(df):
     """
@@ -42,20 +43,21 @@ def main():
     print("Extracting candidates from all rounds...")
     candidates = set()
     folders = [
-        f"{data_path}/2014/1",
-        f"{data_path}/2014/2",
-        f"{data_path}/2020/1",
-        f"{data_path}/2020/2"
+        data_path / "2014" / "1",
+        data_path / "2014" / "2",
+        data_path / "2020" / "1",
+        data_path / "2020" / "2",
     ]
     for folder in folders:
-        if os.path.exists(folder):
+        if folder.exists():
             candidates.update(extract_candidates_from_folder(folder))
     all_candidates = sorted(candidates)
     print(f"Total unique candidates : {len(all_candidates)}")
-    with open("list_candidates.txt", "w", encoding="utf-8") as f:
+    output_file = BASE_DIR / "list_candidates.txt"
+    with open(output_file, "w", encoding="utf-8") as f:
         for name in all_candidates:
             f.write(str(name) + "\n")
-    print("List of candidates exported to list_candidates.txt")
+    print(f"List of candidates exported to {output_file}")
 
 if __name__ == "__main__":
     main()
