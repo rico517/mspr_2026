@@ -25,6 +25,9 @@ python -m common.reset_db
 echo "Database reset done"
 
 echo
+echo "================================================================="
+
+echo
 echo "Cleaning national data..."
 python -m national_treatment.clean_national_files
 echo "National data cleaning process done"
@@ -36,3 +39,11 @@ echo
 echo "Cleaning municipal data..."
 python -m municipal_treatment.clean_municipal_files
 echo "Municipal data cleaned and inserted into db with success"
+
+echo
+echo "================================================================"
+
+echo
+echo "Cleaning socio data..."
+python -m socio_treatment.clean_socio_files
+echo "Socio data cleaned and inserted into db with success"

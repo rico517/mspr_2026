@@ -190,6 +190,61 @@ def export_dataset_to_db(df, scrutin_type, cnx=None):
     debug_print(f"{scrutin_type} data inserted successfully.", level=1)
 
 
+def export_socio_data_to_db(df, cnx=None):
+    """
+    Insert a socio-economic DataFrame into the database.
+
+    Expected columns (see common.schema.SOCIO_COLS):
+        id_circonscription, population_totale, age_moyen, taux_emploi,
+        taux_chomage, taux_cadres, taux_ouvriers, taux_diplomes_sup,
+        taux_peu_diplomes, taux_pauvrete, taux_proprietaires
+    """
+    should_close_cnx_at_end = False
+    if cnx is None:
+        cnx = connect_to_database()
+        should_close_cnx_at_end = True
+
+    debug_print("\nInserting socio-economic data into the database...", level=1)
+    cursor = cnx.cursor()
+
+    debug_print("  Syncing circonscriptions...", level=2)
+    circ_id = sync_dimension(
+        cursor, "circonscriptions", ["code"],
+        [(int(code),) for code in df["id_circonscription"].unique()],
+    )
+    cnx.commit()
+
+    debug_print("  Inserting socio-economic data...", level=2)
+    socio_rows = []
+    for row in df.itertuples():
+        id_c = circ_id.get(int(row.id_circonscription))
+        if id_c is None:
+            continue
+        socio_rows.append((
+            id_c,
+            int(row.population_totale),
+            float(row.age_moyen),
+            float(row.taux_emploi),
+            float(row.taux_chomage),
+            float(row.taux_cadres),
+            float(row.taux_ouvriers),
+            float(row.taux_diplomes_sup),
+            float(row.taux_peu_diplomes),
+            float(row.taux_pauvrete),
+            float(row.taux_proprietaires),
+        ))
+    bulk_insert_ignore(cursor, "indicateurs_sociaux", [
+        "id_circonscription", "population_totale", "age_moyen", "taux_emploi",
+        "taux_chomage", "taux_cadres", "taux_ouvriers", "taux_diplomes_sup",
+        "taux_peu_diplomes", "taux_pauvrete", "taux_proprietaires"
+    ], socio_rows)
+    cnx.commit()
+
+    if should_close_cnx_at_end:
+        cnx.close()
+    debug_print("Socio-economic data inserted successfully.", level=1)
+
+
 def clear_database(cnx=None):
     """
     Truncate all tables in reverse FK order.

@@ -1,6 +1,8 @@
 -- Suppression si existante
 DROP DATABASE IF EXISTS elections_db;
+
 CREATE DATABASE elections_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 USE elections_db;
 
 -- ==========================
@@ -11,7 +13,7 @@ CREATE TABLE scrutins (
     type VARCHAR(100) NOT NULL,
     annee INT NOT NULL,
     tour INT NOT NULL
-) ENGINE=InnoDB;
+) ENGINE = InnoDB;
 
 -- ==========================
 -- TABLE : bords_politique
@@ -19,7 +21,7 @@ CREATE TABLE scrutins (
 CREATE TABLE bords_politiques (
     id INT AUTO_INCREMENT PRIMARY KEY,
     label VARCHAR(100) NOT NULL UNIQUE
-) ENGINE=InnoDB;
+) ENGINE = InnoDB;
 
 -- ==========================
 -- TABLE : candidats
@@ -29,12 +31,8 @@ CREATE TABLE candidats (
     id_bord_politique INT NOT NULL,
     nom VARCHAR(100) NOT NULL,
     prenom VARCHAR(100) NOT NULL,
-    CONSTRAINT fk_candidat_bord
-        FOREIGN KEY (id_bord_politique)
-        REFERENCES bords_politiques(id)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE
-) ENGINE=InnoDB;
+    CONSTRAINT fk_candidat_bord FOREIGN KEY (id_bord_politique) REFERENCES bords_politiques (id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE = InnoDB;
 
 ALTER TABLE candidats ADD UNIQUE (nom, prenom);
 
@@ -43,8 +41,8 @@ ALTER TABLE candidats ADD UNIQUE (nom, prenom);
 -- ==========================
 CREATE TABLE circonscriptions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    code INT NOT NULL    
-) ENGINE=InnoDB;
+    code INT NOT NULL
+) ENGINE = InnoDB;
 
 -- ==========================
 -- TABLE : scrutin_circonscription
@@ -59,21 +57,13 @@ CREATE TABLE scrutins_circonscriptions (
     votants INT NOT NULL DEFAULT 0,
     exprimes INT NOT NULL DEFAULT 0,
     blancs_nuls INT NOT NULL DEFAULT 0,
-
-    UNIQUE (id_scrutin, id_circonscription),
-
-    CONSTRAINT fk_sc_scrutin
-        FOREIGN KEY (id_scrutin)
-        REFERENCES scrutins(id)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE,
-
-    CONSTRAINT fk_sc_circonscription
-        FOREIGN KEY (id_circonscription)
-        REFERENCES circonscriptions(id)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE
-) ENGINE=InnoDB;
+    UNIQUE (
+        id_scrutin,
+        id_circonscription
+    ),
+    CONSTRAINT fk_sc_scrutin FOREIGN KEY (id_scrutin) REFERENCES scrutins (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_sc_circonscription FOREIGN KEY (id_circonscription) REFERENCES circonscriptions (id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE = InnoDB;
 
 -- ==========================
 -- TABLE : votes
@@ -83,14 +73,25 @@ CREATE TABLE votes (
     id_candidat INT NOT NULL,
     id_scrutin_circonscription INT NOT NULL,
     voix INT NOT NULL DEFAULT 0,
-    CONSTRAINT fk_vote_candidat
-        FOREIGN KEY (id_candidat)
-        REFERENCES candidats(id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE,
-    CONSTRAINT fk_vote_scrut_circo
-        FOREIGN KEY (id_scrutin_circonscription)
-        REFERENCES scrutins_circonscriptions(id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE
-) ENGINE=InnoDB;
+    CONSTRAINT fk_vote_candidat FOREIGN KEY (id_candidat) REFERENCES candidats (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_vote_scrut_circo FOREIGN KEY (id_scrutin_circonscription) REFERENCES scrutins_circonscriptions (id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+-- =========================
+-- TABLE : indicateurs_sociaux
+-- =========================
+CREATE TABLE indicateurs_sociaux (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_circonscription INT NOT NULL,
+    population_totale INT NOT NULL,
+    age_moyen FLOAT NOT NULL,
+    taux_emploi FLOAT NOT NULL,
+    taux_chomage FLOAT NOT NULL,
+    taux_cadres FLOAT NOT NULL,
+    taux_ouvriers FLOAT NOT NULL,
+    taux_diplomes_sup FLOAT NOT NULL,
+    taux_peu_diplomes FLOAT NOT NULL,
+    taux_pauvrete FLOAT NOT NULL,
+    taux_proprietaires FLOAT NOT NULL,
+    CONSTRAINT fk_is_circonscription FOREIGN KEY (id_circonscription) REFERENCES circonscriptions (id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE = InnoDB;
