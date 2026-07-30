@@ -6,6 +6,7 @@ from typing import Dict, Tuple
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
+from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
@@ -42,6 +43,15 @@ JOIN scrutins s ON s.id = sc.id_scrutin
 JOIN circonscriptions ci ON ci.id = sc.id_circonscription
 """
 
+SOCIO_SQL_QUERY = """
+SELECT
+    ci.code AS district_code,
+    s.population_totale, s.age_moyen, s.taux_emploi, s.taux_chomage,
+    s.taux_cadres, s.taux_ouvriers, s.taux_diplomes_sup,
+    s.taux_peu_diplomes, s.taux_pauvrete, s.taux_proprietaires
+FROM indicateurs_sociaux s
+JOIN circonscriptions ci ON ci.id = s.id_circonscription
+"""
 
 def load_raw_data_from_database() -> pd.DataFrame:
     print("Loading election data from database.")
@@ -60,15 +70,25 @@ def load_raw_data_from_database() -> pd.DataFrame:
         raise ValueError("No records were fetched from the database for the selected districts.")
     return df
 
+def load_socio_data_from_database() -> pd.DataFrame:
+    cnx = connect_to_database()
+    try:
+        cursor = cnx.cursor()
+        cursor.execute(SOCIO_SQL_QUERY)
+        records = cursor.fetchall()
+        columns = [col[0] for col in cursor.description]
+        return pd.DataFrame(records, columns=columns)
+    finally:
+        cnx.close()
 
-def _get_last_two_years(df: pd.DataFrame, election_type: str) -> Tuple[int, int]:
+def get_last_two_years(df: pd.DataFrame, election_type: str) -> Tuple[int, int]:
     years = sorted(df.loc[df["election_type"] == election_type, "election_year"].unique())
     if len(years) < 2:
         raise ValueError(f"At least two years are required for election type '{election_type}'.")
     return years[-2], years[-1]
 
 
-def _aggregate_all_rounds(raw_df: pd.DataFrame) -> pd.DataFrame:
+def aggregate_all_rounds(raw_df: pd.DataFrame) -> pd.DataFrame:
     # Keep each election round as a separate signal to preserve full electoral dynamics.
     grouped = (
         raw_df.groupby(
@@ -105,13 +125,14 @@ def _aggregate_all_rounds(raw_df: pd.DataFrame) -> pd.DataFrame:
 
 def prepare_dataset_from_database(
     raw_df: pd.DataFrame,
+    socio_df: pd.DataFrame,
     target_election_type: str,
     secondary_election_type: str,
 ) -> pd.DataFrame:
-    aggregated = _aggregate_all_rounds(raw_df)
+    aggregated = aggregate_all_rounds(raw_df)
 
-    target_year_1, target_year_2 = _get_last_two_years(aggregated, target_election_type)
-    secondary_year_1, secondary_year_2 = _get_last_two_years(
+    target_year_1, target_year_2 = get_last_two_years(aggregated, target_election_type)
+    secondary_year_1, secondary_year_2 = get_last_two_years(
         aggregated, secondary_election_type
     )
 
@@ -189,6 +210,7 @@ def prepare_dataset_from_database(
             )
             base = base.merge(turnout_subset, on="district_code", how="left")
 
+    base = base.merge(socio_df, on="district_code", how="left")
     base = base.fillna(0.0)
     base = base.drop(columns=["winner_party"])
     return base
@@ -203,7 +225,7 @@ def validate_data(df: pd.DataFrame, target_col: str) -> None:
         raise ValueError("The target column only contains missing values.")
 
 
-def build_xgboost_model(n_classes: int, random_state: int) -> XGBClassifier:
+def build_xgboost_model(n_classes: int, random_state: int, scale_pos_weight: float = 1.0) -> XGBClassifier:
     if n_classes > 2:
         return XGBClassifier(
             objective="multi:softprob",
@@ -228,6 +250,7 @@ def build_xgboost_model(n_classes: int, random_state: int) -> XGBClassifier:
         eval_metric="logloss",
         random_state=random_state,
         n_jobs=-1,
+        scale_pos_weight=scale_pos_weight,
     )
 
 
@@ -240,7 +263,8 @@ def train_and_compare(
 ) -> None:
     validate_data(df, target_col)
 
-    x = df.drop(columns=[target_col]).copy()
+    # district_code is a nominal id, not a continuous feature - drop it to avoid memorization.
+    x = df.drop(columns=[target_col, "district_code"]).copy()
     y_raw = df[target_col].astype(str).fillna("Unknown")
 
     label_encoder = LabelEncoder()
@@ -260,9 +284,11 @@ def train_and_compare(
         ]
     )
 
+    class_counts = pd.Series(y).value_counts()
+    scale_pos_weight = class_counts[0] / class_counts[1] if len(class_names) == 2 else 1.0
+
     if test_size <= 0:
         # Full-data mode: evaluate with out-of-fold predictions instead of train predictions.
-        class_counts = pd.Series(y).value_counts()
         max_valid_folds = int(class_counts.min())
         if max_valid_folds < 2:
             raise ValueError(
@@ -288,14 +314,19 @@ def train_and_compare(
         )
 
     models = {
-        "Logistic Regression": LogisticRegression(max_iter=2000),
+        "Baseline (majority class)": DummyClassifier(strategy="most_frequent"),
+        "Logistic Regression": LogisticRegression(max_iter=2000, class_weight="balanced"),
         "Random Forest": RandomForestClassifier(
             n_estimators=400,
             random_state=random_state,
             class_weight="balanced",
             n_jobs=-1,
         ),
-        "XGBoost": build_xgboost_model(n_classes=len(class_names), random_state=random_state),
+        "XGBoost": build_xgboost_model(
+            n_classes=len(class_names),
+            random_state=random_state,
+            scale_pos_weight=scale_pos_weight,
+        ),
     }
 
     results = []
@@ -403,8 +434,10 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     raw_df = load_raw_data_from_database()
+    socio_df = load_socio_data_from_database()
     data = prepare_dataset_from_database(
         raw_df=raw_df,
+        socio_df=socio_df,
         target_election_type=args.target_election_type,
         secondary_election_type=args.secondary_election_type,
     )
